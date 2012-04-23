@@ -2,7 +2,8 @@ import sys
 import os.path
 import csv
 import math 
-from collections import defaultdict
+import types
+from collections import defaultdict, Iterable
 import itertools
 
 class Apriori:
@@ -24,15 +25,15 @@ class Apriori:
         count = {}
 
         self.F[1] = self.firstPass(self.itemset, 1)
-        print "First Pass: "
-        print self.F[1]
+        #print "First Pass: "
+        #print self.F[1]
         k=2
         candidate[k] = self.candidateGen(self.F[k-1], k-1)
         #print "Candidate[k]: "
         #print candidate[k]
         while len(self.F[k-1]) != 0:
             candidate[k] = self.candidateGen(self.F[k-1], k-1)
-            print candidate[k]
+            #print candidate[k]
             for c in candidate[k]:
                 count[frozenset(c)] = 0
             for t in self.transList.iteritems():
@@ -41,18 +42,37 @@ class Apriori:
                         count[frozenset(c)] += 1
 
             self.F[k] = self.prune(candidate[k], count, k)
-            print self.F[k]
             k += 1
 
-        for row in self.F.items():
-            print row
+        self.genRules(self.F, count, self.minConf)
 
-    def hasSubset(self, c, t):
-        flag = False
-        for item in c:
-            flag = item in t[1]
+    def candidateGen(self, items, k):
+        candidate = []
 
-        return flag
+        if len(items) > 2:
+            for f1, f2 in itertools.combinations(items, 2):
+                c = [f1, f2]
+                if len(c) == k+1:
+                    flag = True
+                    for s in c:
+                        if not set([s]).issubset(items):
+                            flag = False
+                    if flag:
+                        candidate.append(c)
+
+        return candidate
+
+    def genRules(self, F, count, minConf):
+        for itemset in F.iteritems():
+            #print itemset
+            if len(itemset[1]) >= 2:
+                H = []
+                for item in itemset[1]:
+                    if type(item) is not list:
+                        print self.freqList[item]
+                    else:
+                        print count[frozenset(item)]
+
 
     def frozenSupport(self, counts, item):
         return float(counts[frozenset(item)])/self.numItems
@@ -68,6 +88,8 @@ class Apriori:
         for item in items:
             support = self.frozenSupport(counts, item)
             if support >= self.minSup:
+                #print item
+                #print support
                 f.append(item)
 
         return f
@@ -80,16 +102,6 @@ class Apriori:
                 f.append(item)
 
         return f
-
-    def candidateGen(self, items, k):
-        candidate = []
-
-        if len(items) > 2:
-            for f1, f2 in itertools.combinations(items, 2):
-                c = [f1, f2]
-                candidate.append(c)
-
-        return candidate
 
     """
     Prepare the transaction data into a dictionary

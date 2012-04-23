@@ -8,56 +8,88 @@ import itertools
 class Apriori:
     def __init__(self, data, minSup, minConf):
         self.dataset = data
-        self.transactions = defaultdict(set)
+        self.transList = defaultdict(list)
         self.freqList = defaultdict(int)
         self.itemset = set()
-        self.prepData() # initialize the above collections
+        self.numItems = 0
+        self.prepData()             # initialize the above collections
 
-        self.F = defaultdict(list) # frequent itemset
+        self.F = defaultdict(list)
 
         self.minSup = minSup
         self.minConf = minConf
 
     def genAssociations(self):
-        #self.F[1] = self._firstPass()
-        count = defaultdict(int)
-        self.minsupSubset(1, self.freqList.items())
-        C = {}
+        candidate = {}
+        count = {}
 
+        self.F[1] = self.firstPass(self.itemset, 1)
+        print "First Pass: "
+        print self.F[1]
         k=2
-        #while self.F[k-1] != set():
-        C[k] = self.candidateGen(self.F[k-1], k-1)
+        candidate[k] = self.candidateGen(self.F[k-1], k-1)
+        #print "Candidate[k]: "
+        #print candidate[k]
+        while len(self.F[k-1]) != 0:
+            candidate[k] = self.candidateGen(self.F[k-1], k-1)
+            print candidate[k]
+            for c in candidate[k]:
+                count[frozenset(c)] = 0
+            for t in self.transList.iteritems():
+                for c in candidate[k]:
+                    if set(c).issubset(t[1]):
+                        count[frozenset(c)] += 1
 
-            #for row in C[k]:
-            #    count[row] = 0
+            self.F[k] = self.prune(candidate[k], count, k)
+            print self.F[k]
+            k += 1
 
-            #for t in self.transactions:
-            #    for c in C[k]:
-            #        if c.issubset(t):
-            #            count[c]++
+        for row in self.F.items():
+            print row
 
-            #minsupSubset(k, C[k])
-        #    k += 1
+    def hasSubset(self, c, t):
+        flag = False
+        for item in c:
+            flag = item in t[1]
+
+        return flag
+
+    def frozenSupport(self, counts, item):
+        return float(counts[frozenset(item)])/self.numItems
 
     def support(self, item):
-        return float(self.freqList[int(item[0])])/len(self.transactions.items())
+        return float(self.freqList[int(item)])/self.numItems
 
-    def minsupSubset(self, k, c):
-        for item in c:
-            if self.support(item) >= self.minSup:
-                self.F[k].append(item[0])
+    #def frequency(self, item):
+    #    return float(self.freqList[item])/
 
-    def candidateGen(self, F, k):
-        C = set()
-        print F
+    def prune(self, items, counts, k):
+        f = []
+        for item in items:
+            support = self.frozenSupport(counts, item)
+            if support >= self.minSup:
+                f.append(item)
 
-        print set([i.union(j) for i in F for j in F if len(i.union(j)) == k])
-        for element in itertools.product(F, F):
-            print element
+        return f
 
-        
+    def firstPass(self, items, k):
+        f = []
+        for item in items:
+            support = self.support(item)
+            if support >= self.minSup:
+                f.append(item)
 
-        #print [(i, j) for i in F for j in F]
+        return f
+
+    def candidateGen(self, items, k):
+        candidate = []
+
+        if len(items) > 2:
+            for f1, f2 in itertools.combinations(items, 2):
+                c = [f1, f2]
+                candidate.append(c)
+
+        return candidate
 
     """
     Prepare the transaction data into a dictionary
@@ -66,15 +98,18 @@ class Apriori:
 
     Also generates the frequent itemlist for itemsets of size 1
     key: Goods.Id
-    val: frequency of Goods.Id in self.transactions
+    val: frequency of Goods.Id in self.transList
     """
     def prepData(self):
-        for v in self.dataset:
-            k = v[0] # key is Goods.id
-            for i, val in enumerate(v):
+        key = 0
+        for basket in self.dataset:
+            self.numItems += 1
+            key = basket[0]
+            for i, item in enumerate(basket):
                 if i != 0:
-                    self.freqList[int(val)] += 1
-                    self.transactions[int(k)].add(val)
+                    self.transList[key].append(int(item))
+                    self.itemset.add(int(item))
+                    self.freqList[int(item)] += 1
 
 #def genRules(F, minConf):
 

@@ -28,15 +28,32 @@ class Apriori:
         k=2
         while len(self.F[k-1]) != 0:
             candidate[k] = self.candidateGen(self.F[k-1], k)
+            """if k > 2:
+                for row in H:
+                    if subset[0] == row[0][0] and len(row[0]) == 1:
+                        print row
+                        H.remove(row)"""
             for t in self.transList.iteritems():
                 for c in candidate[k]:
                     if set(c).issubset(t[1]):
                         self.freqList[c] += 1
 
             self.F[k] = self.prune(candidate[k], k)
+            if k > 2:
+                self.removeSkyline(k, k-1)
             k += 1
 
         return self.F
+
+    def removeSkyline(self, k, kPrev):
+        for item in self.F[k]:
+            subsets = self.genSubsets(item)
+            for subset in subsets:
+                if subset in (self.F[kPrev]):
+                    self.F[kPrev].remove(subset)
+                    
+
+        subsets = self.genSubsets
 
     def prune(self, items, k):
         f = []
@@ -76,11 +93,6 @@ class Apriori:
                 for item in itemset:
                     subsets = self.genSubsets(item)
                     for subset in subsets:
-                        if k > 2:
-                            for row in H:
-                                if subset[0] == row[0][0] and len(row[0]) == 1:
-                                    print row
-                                    H.remove(row)
                         if len(subset) == 1:
                             subCount = self.freqList[subset[0]]
                         else:
@@ -96,7 +108,6 @@ class Apriori:
 
         return H
 
-
     def difference(self, item, subset):
         return tuple(x for x in item if x not in subset)
 
@@ -105,7 +116,6 @@ class Apriori:
 
     def support(self, count):
         return float(count)/self.numItems
-
 
     def firstPass(self, items, k):
         f = []
@@ -149,7 +159,6 @@ def main():
         dataset = csv.reader(open(sys.argv[1], "r"))
         goodsData = csv.reader(open('goods.csv', "r"))
 
-
         for item in goodsData:
             goods[item[0]] = item[1:]
 
@@ -162,12 +171,12 @@ def main():
         rules = a.genRules(frequentItemsets)
 
         for i, rule in enumerate(rules):
-            print "Rule",i,": ",readable(rule[0], goods),"-->",readable(rule[1], goods),"  [sup=",rule[2],"  conf=",rule[3],"]"
+            print "Rule",i,": ",readable(rule[0], goods),"-->",readable(rule[1], goods)," [sup=",rule[2],"  conf=",rule[3],"]"
 
 def readable(item, goods):
     itemStr = ''
     for k, i in enumerate(item):
-        itemStr += goods[i][0] + " " + goods[i][1]
+        itemStr += goods[i][0] + goods[i][1] +"(" + i + ")"
         if len(item) != 0 and k != len(item)-1:
             itemStr += ", "
 

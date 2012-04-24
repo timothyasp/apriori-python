@@ -1,0 +1,5 @@
+Run Instructions:
+
+python apriori.py data/example/out1.csv .05 .7
+
+So far I've had the best results with support between .03 and .05

@@ -24,81 +24,98 @@ class Apriori:
         candidate = {}
         count = {}
 
-        self.F[1] = self.firstPass(self.itemset, 1)
+        self.F[1] = self.firstPass(self.freqList, 1)
         #print "First Pass: "
         #print self.F[1]
         k=2
-        candidate[k] = self.candidateGen(self.F[k-1], k-1)
         #print "Candidate[k]: "
         #print candidate[k]
         while len(self.F[k-1]) != 0:
             candidate[k] = self.candidateGen(self.F[k-1], k-1)
             #print candidate[k]
-            for c in candidate[k]:
-                count[frozenset(c)] = 0
+            #for c in candidate[k]:
+            #    count[frozenset(c)] = 0
             for t in self.transList.iteritems():
                 for c in candidate[k]:
-                    if set(c).issubset(t[1]):
-                        count[frozenset(c)] += 1
+                    if self.isSubset(c, t[1]):
+                        self.freqList[c] += 1
 
-            self.F[k] = self.prune(candidate[k], count, k)
+            self.F[k] = self.prune(candidate[k], k)
             k += 1
 
-        self.genRules(self.F, count, self.minConf)
+        self.genRules(self.F, self.minConf)
+
+    def isSubset(self, c, t):
+        cSize = len(c)
+        size = 0
+        for x in c:
+            for y in t:
+                if x == y:
+                    size += 1
+        return size == cSize
 
     def candidateGen(self, items, k):
         candidate = []
 
-        if len(items) > 2:
-            for f1, f2 in itertools.combinations(items, 2):
-                c = [f1, f2]
-                if len(c) == k+1:
-                    flag = True
-                    for s in c:
-                        if not set([s]).issubset(items):
-                            flag = False
-                    if flag:
-                        candidate.append(c)
+        for f1, f2 in itertools.combinations(items, 2):
+            c = (f1, f2)
+            if len(c) == k+1:
+                flag = True
+                for s in c:
+                    if s not in items:
+                        flag = False
+                if flag:
+                    candidate.append(c)
 
         return candidate
 
-    def genRules(self, F, count, minConf):
-        for itemset in F.iteritems():
-            #print itemset
-            if len(itemset[1]) >= 2:
-                H = []
-                for item in itemset[1]:
-                    if type(item) is not list:
-                        print self.freqList[item]
-                    else:
-                        print count[frozenset(item)]
+    def genRules(self, F, minConf):
+        for k, itemset in F.iteritems():
+            H = []
+            print itemset
+            for item in itemset:
+                if k >= 2:
+                    subsets = self.genSubsets(item)
+                    for subset in subsets:
+                        subCount = self.freqList[subset[0]]
+                        itemCount = self.freqList[item]
+                        confidence = self.confidence(subCount, itemCount)
+                        if confidence >= self.minConf:
+                            support = self.support(self.freqList[item])
+                            print subset, self.difference(item, subset), support, confidence
 
+    def difference(self, item, subset):
+        return tuple(x for x in item if x not in subset)
+
+    def confidence(self, subCount, itemCount):
+        return float(itemCount)/subCount
+
+    def genSubsets(self, item):
+        subsets = []
+        length = len(item)
+        for i in range(1,length):
+            subsets.extend(itertools.combinations(item, i))
+        return subsets
 
     def frozenSupport(self, counts, item):
         return float(counts[frozenset(item)])/self.numItems
 
-    def support(self, item):
-        return float(self.freqList[int(item)])/self.numItems
+    def support(self, count):
+        return float(count)/self.numItems
 
-    #def frequency(self, item):
-    #    return float(self.freqList[item])/
-
-    def prune(self, items, counts, k):
+    def prune(self, items, k):
         f = []
         for item in items:
-            support = self.frozenSupport(counts, item)
-            if support >= self.minSup:
-                #print item
-                #print support
+            count = self.freqList[item]
+            if self.support(count) >= self.minSup:
                 f.append(item)
 
         return f
 
     def firstPass(self, items, k):
         f = []
-        for item in items:
-            support = self.support(item)
-            if support >= self.minSup:
+        for item, count in items.iteritems():
+            if self.support(count) >= self.minSup:
                 f.append(item)
 
         return f
@@ -119,9 +136,9 @@ class Apriori:
             key = basket[0]
             for i, item in enumerate(basket):
                 if i != 0:
-                    self.transList[key].append(int(item))
-                    self.itemset.add(int(item))
-                    self.freqList[int(item)] += 1
+                    self.transList[key].append(item)
+                    self.itemset.add(item)
+                    self.freqList[(item)] += 1
 
 #def genRules(F, minConf):
 

@@ -94,11 +94,8 @@ class Apriori:
                                 if len(rhs) == 1:
                                     H.append((subset, rhs, support, confidence))
 
-        self.skylineRules(H)
+        return H
 
-    def skylineRules(self, H):
-        for i, rule in enumerate(H):
-            print "Rule",i,": ",rule[0],"-->",rule[1],"  [sup=",rule[2],"  conf=",rule[3],"]"
 
     def difference(self, item, subset):
         return tuple(x for x in item if x not in subset)
@@ -139,6 +136,7 @@ class Apriori:
                     self.freqList[(item.strip())] += 1
 
 def main():
+    goods = defaultdict(list)
     num_args = len(sys.argv)
     minSup = minConf = 0
 
@@ -149,13 +147,31 @@ def main():
     # If they are read them in
     else: 
         dataset = csv.reader(open(sys.argv[1], "r"))
+        goodsData = csv.reader(open('goods.csv', "r"))
+
+
+        for item in goodsData:
+            goods[item[0]] = item[1:]
+
         minSup  = float(sys.argv[2])
         minConf = float(sys.argv[3])
 
         a = Apriori(dataset, minSup, minConf)
 
         frequentItemsets = a.genAssociations()
-        a.genRules(frequentItemsets)
+        rules = a.genRules(frequentItemsets)
+
+        for i, rule in enumerate(rules):
+            print "Rule",i,": ",readable(rule[0], goods),"-->",readable(rule[1], goods),"  [sup=",rule[2],"  conf=",rule[3],"]"
+
+def readable(item, goods):
+    itemStr = ''
+    for k, i in enumerate(item):
+        itemStr += goods[i][0] + " " + goods[i][1]
+        if len(item) != 0 and k != len(item)-1:
+            itemStr += ", "
+
+    return itemStr.replace("'", "")
 
 
 if __name__ == '__main__':

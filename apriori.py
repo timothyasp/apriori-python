@@ -27,7 +27,7 @@ class Apriori:
         self.F[1] = self.firstPass(self.freqList, 1)
         k=2
         while len(self.F[k-1]) != 0:
-            candidate[k] = set(self.candidateGen(self.F[k-1], k))
+            candidate[k] = self.candidateGen(self.F[k-1], k)
             for t in self.transList.iteritems():
                 for c in candidate[k]:
                     if set(c).issubset(t[1]):
@@ -36,7 +36,7 @@ class Apriori:
             self.F[k] = self.prune(candidate[k], k)
             k += 1
 
-        self.genRules(self.F, self.minConf)
+        return self.F
 
     def prune(self, items, k):
         f = []
@@ -47,36 +47,28 @@ class Apriori:
 
         return f
 
-    def isSubset(self, c, t):
-        cSize = len(c)
-        size = 0
-        for x in c:
-            for y in t:
-                if x == y:
-                    size += 1
-        return size == cSize
-
     def candidateGen(self, items, k):
         candidate = []
 
-        for c in itertools.combinations(items, k):
-            if k > 2:
-                itemset = set()
-                for x in c:
-                    itemset = set(x).union(itemset)
-                    if len(itemset) == k:
-                        candidate.append(tuple(itemset))
-            else:
-                flag = True
-                for s in c:
-                    if s not in items:
-                        flag = False
-                if flag:
-                    candidate.append(c)
+        if k == 2:
+            candidate = [tuple(sorted([x, y])) for x in items for y in items if len((x, y)) == k and x != y]
+        else:
+            candidate = [tuple(set(x).union(y)) for x in items for y in items if len(set(x).union(y)) == k and x != y]
 
-        return candidate
+        for c in candidate:
+            subsets = self.genSubsets(c)
+            if any([ x not in items for x in subsets ]):
+                candidate.remove(c)
 
-    def genRules(self, F, minConf):
+        return set(candidate)
+
+    def genSubsets(self, item):
+        subsets = []
+        for i in range(1,len(item)):
+            subsets.extend(itertools.combinations(item, i))
+        return subsets
+
+    def genRules(self, F):
         H = []
         for k, itemset in F.iteritems():
             for item in itemset:
@@ -95,12 +87,14 @@ class Apriori:
                                 rhs = self.difference(item, subset)
                                 if len(rhs) == 1:
                                     H.append((subset, rhs, support, confidence))
+                        else:
+                            print subset
 
         self.skylineRules(H)
 
     def skylineRules(self, H):
-        for rule in H:
-            print rule
+        for i, rule in enumerate(H):
+            print "Rule",i,": ",rule[0],"-->",rule[1],"  [sup=",rule[2],"  conf=",rule[3],"]"
 
     def difference(self, item, subset):
         return tuple(x for x in item if x not in subset)
@@ -111,13 +105,6 @@ class Apriori:
     def support(self, count):
         return float(count)/self.numItems
 
-    def genSubsets(self, item):
-        subsets = []
-        length = len(item)
-        for i in range(1,length):
-            combs = itertools.combinations(item, i)
-            subsets.extend(combs)
-        return subsets
 
     def firstPass(self, items, k):
         f = []
@@ -163,7 +150,8 @@ def main():
 
         a = Apriori(dataset, minSup, minConf)
 
-        a.genAssociations()
+        frequentItemsets = a.genAssociations()
+        a.genRules(frequentItemsets)
 
 
 if __name__ == '__main__':

@@ -70,11 +70,17 @@ class Apriori:
 
     def genRules(self, F):
         H = []
+
         for k, itemset in F.iteritems():
-            for item in itemset:
-                if k >= 2:
+            if k >= 2:
+                for item in itemset:
                     subsets = self.genSubsets(item)
                     for subset in subsets:
+                        if k > 2:
+                            for row in H:
+                                if subset[0] == row[0][0] and len(row[0]) == 1:
+                                    print row
+                                    H.remove(row)
                         if len(subset) == 1:
                             subCount = self.freqList[subset[0]]
                         else:
@@ -87,8 +93,6 @@ class Apriori:
                                 rhs = self.difference(item, subset)
                                 if len(rhs) == 1:
                                     H.append((subset, rhs, support, confidence))
-                        else:
-                            print subset
 
         self.skylineRules(H)
 

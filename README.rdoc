@@ -1,5 +1,7 @@
 CPE 466 Lab 3: Association Rules Mining, Apriori Implimentation Printout
+
 Timothy Asp, Caleb Carlton
+
 4/24/12
 
 Input Format: python apriori.py [--no-rules] <dataFile-out1.csv> <minSup> <minConf>
@@ -11,9 +13,8 @@ Example:
    python apriori.py --no-rules data/1000/1000-out1.csv .03 .7
    python apriori.py data/example/out1.csv .03 .7
 
-###############################################################################
-####################    EXTENDED BAKERY PRINTOUTS   ###########################
-###############################################################################
+== Extended Bakery Printouts
+
 =================================================================
 Dataset:  data/example/out1.csv  MinSup:  0.03  MinConf:  0.7
 ==================================================================

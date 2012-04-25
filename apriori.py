@@ -12,6 +12,7 @@ class Apriori:
         self.transList = defaultdict(list)
         self.freqList = defaultdict(int)
         self.itemset = set()
+        self.highSupportList = list()
         self.numItems = 0
         self.prepData()             # initialize the above collections
 
@@ -28,11 +29,6 @@ class Apriori:
         k=2
         while len(self.F[k-1]) != 0:
             candidate[k] = self.candidateGen(self.F[k-1], k)
-            """if k > 2:
-                for row in H:
-                    if subset[0] == row[0][0] and len(row[0]) == 1:
-                        print row
-                        H.remove(row)"""
             for t in self.transList.iteritems():
                 for c in candidate[k]:
                     if set(c).issubset(t[1]):
@@ -59,7 +55,10 @@ class Apriori:
         f = []
         for item in items:
             count = self.freqList[item]
-            if self.support(count) >= self.minSup:
+            support = self.support(count)
+            if support >= .95:
+                self.highSupportList.append(item)
+            elif support >= self.minSup:
                 f.append(item)
 
         return f
@@ -71,7 +70,7 @@ class Apriori:
             candidate = [tuple(sorted([x, y])) for x in items for y in items if len((x, y)) == k and x != y]
         else:
             candidate = [tuple(set(x).union(y)) for x in items for y in items if len(set(x).union(y)) == k and x != y]
-
+        
         for c in candidate:
             subsets = self.genSubsets(c)
             if any([ x not in items for x in subsets ]):
@@ -120,7 +119,10 @@ class Apriori:
     def firstPass(self, items, k):
         f = []
         for item, count in items.iteritems():
-            if self.support(count) >= self.minSup:
+            support = self.support(count)
+            if support == 1:
+                self.highSupportList.append(item)
+            elif support >= self.minSup:
                 f.append(item)
 
         return f
@@ -149,39 +151,58 @@ def main():
     goods = defaultdict(list)
     num_args = len(sys.argv)
     minSup = minConf = 0
+    noRules = False
 
     # Make sure the right number of input files are specified
-    if  num_args != 4:
+    if  num_args < 4 or num_args > 5:
         print 'Expected input format: python apriori.py <dataset.csv> <minSup> <minConf>'
         return
-    # If they are read them in
+    elif num_args == 5 and sys.argv[1] == "--no-rules":
+        dataset = csv.reader(open(sys.argv[2], "r"))
+        goodsData = csv.reader(open('goods.csv', "r"))
+        minSup  = float(sys.argv[3])
+        minConf = float(sys.argv[4])
+        noRules = True
+        print "Dataset: ", sys.argv[2], " MinSup: ", minSup, " MinConf: ", minConf
     else: 
         dataset = csv.reader(open(sys.argv[1], "r"))
         goodsData = csv.reader(open('goods.csv', "r"))
-
-        for item in goodsData:
-            goods[item[0]] = item[1:]
-
         minSup  = float(sys.argv[2])
         minConf = float(sys.argv[3])
+        print "Dataset: ", sys.argv[1], " MinSup: ", minSup, " MinConf: ", minConf
 
-        a = Apriori(dataset, minSup, minConf)
+    print "=================================================================="
 
-        frequentItemsets = a.genAssociations()
+    for item in goodsData:
+        goods[item[0]] = item[1:]
+
+    a = Apriori(dataset, minSup, minConf)
+
+    frequentItemsets = a.genAssociations()
+
+    count = 0
+    for k, item in frequentItemsets.iteritems():
+        for i in item:
+            if k >= 2:
+                count += 1
+                print count,":  ",readable(i, goods),"\tsupport=",a.support(a.freqList[i])
+
+    print "Skyline Itemsets: ", count
+    if not noRules:
         rules = a.genRules(frequentItemsets)
-
         for i, rule in enumerate(rules):
-            print "Rule",i,": ",readable(rule[0], goods),"-->",readable(rule[1], goods)," [sup=",rule[2],"  conf=",rule[3],"]"
+            print "Rule",i+1,":\t ",readable(rule[0], goods),"\t-->",readable(rule[1], goods),"\t [sup=",rule[2]," conf=",rule[3],"]"
+
+    print "\n"
 
 def readable(item, goods):
     itemStr = ''
     for k, i in enumerate(item):
-        itemStr += goods[i][0] + goods[i][1] +"(" + i + ")"
+        itemStr += goods[i][0] + " " + goods[i][1] +" (" + i + ")"
         if len(item) != 0 and k != len(item)-1:
-            itemStr += ", "
+            itemStr += ",\t"
 
     return itemStr.replace("'", "")
-
 
 if __name__ == '__main__':
     main()

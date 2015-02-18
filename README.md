@@ -1,8 +1,6 @@
-CPE 466 Lab 3: Association Rules Mining, Apriori Implimentation Printout
+Association Rules Mining, Apriori Implimentation
 
 Timothy Asp, Caleb Carlton
-
-4/24/12
 
 Input Format: python apriori.py [--no-rules] <dataFile-out1.csv> <minSup> <minConf>
    --no-rules will run the code without rules generation.
